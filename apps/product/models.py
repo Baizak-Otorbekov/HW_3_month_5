@@ -5,6 +5,31 @@ from apps.utils import get_product_upload_path
 from slugify import slugify
 import uuid
 
+class Category(models.Model):
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Название категории",
+        unique=True
+    )
+    slug = models.SlugField(
+        verbose_name="SLUG категории",
+        unique=True,
+        blank=True, 
+        default=uuid.uuid4  
+    )
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):    
+        if not self.slug or self.slug == '':  
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
+
 class Product(models.Model):
     title = models.CharField(
         max_length=255,
@@ -28,16 +53,24 @@ class Product(models.Model):
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Дата создания товра",
+        verbose_name="Дата создания товара",
         null=True
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        verbose_name="Категория",
+        null=True,
+        blank=True,
+        related_name='products'
     )
     
     def __str__(self):
         return self.title
     
-    def get_first_image(self) -> 'ProductImage':
+    def get_first_image(self) -> str:
         product_image = ProductImage.objects.filter(product=self).first()
-        return product_image.url if product_image else None
+        return product_image.image.url if product_image else None
     
     def save(self, *args, **kwargs):    
         if not self.slug:
@@ -79,4 +112,3 @@ class ProductImage(models.Model):
         verbose_name = "Изображение"
         verbose_name_plural = "Изображения"
         ordering = ['position',]
-        
